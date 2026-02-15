@@ -9,7 +9,9 @@ extract(input, function (err, pages) {
         console.dir(err)
         return
     }
-    fs.writeFile(output, pages, (error) => {
+    // pages is an array, join it into a string
+    var text = Array.isArray(pages) ? pages.join('\n') : pages
+    fs.writeFile(output, text, (error) => {
         if (error) {
             console.log(error);
         } else {
