@@ -64,8 +64,10 @@ def main(argv):
     for (k, v) in stat_all.items():
         valueE = 0
         valueN = 0
-        for i in range(0, SPLIT): valueE += v[keywords[i]]
-        for i in range(SPLIT, len(keywords)): valueN += v[keywords[i]]
+        for i in range(0, SPLIT):
+            valueE += v[keywords[i]]
+        for i in range(SPLIT, len(keywords)):
+            valueN += v[keywords[i]]
         stat_clf[k] = {'Efficiency': valueE, 'Novelty': valueN}
 
     utils.StatWriter('company_single_pdf.xls', keywords, stat_sig)

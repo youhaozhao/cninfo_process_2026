@@ -2,7 +2,7 @@
 # PDF file image extractor
 ###
 import PyPDF2
-from PyPDF2.filters import *
+from PyPDF2.filters import *  # noqa: F403
 import copy
 import os
 import sys
@@ -62,9 +62,9 @@ def parseParam():
 def main():
     sourceName, outputFolder, targetPage = parseParam()
     fileBase = os.path.splitext(os.path.basename(sourceName))[0]
-    pdfObj = PyPDF2.PdfFileReader(open(sourceName, "rb"))
-    for iPage in range(0, pdfObj.numPages):
-        pageObj = pdfObj.getPage(iPage)
+    pdfObj = PyPDF2.PdfReader(open(sourceName, "rb"))
+    for iPage in range(0, len(pdfObj.pages)):
+        pageObj = pdfObj.pages[iPage]
 
         if targetPage and (iPage+1 != targetPage):
             continue
@@ -79,7 +79,7 @@ def main():
             if xObject[obj]['/Subtype'] == '/Image':
                 iImage += 1
                 title = obj[1:]
-                fileName = "{2}_p{0:0>3}_{3}".format(iPage+1, iImage, fileBase, title)
+                fileName = "{2}_p{0:0>3}_{1}".format(iPage + 1, title, fileBase)
                 outFileName = os.path.join(outputFolder, fileName)
 
                 size = (xObject[obj]['/Width'], xObject[obj]['/Height'])

@@ -3,13 +3,15 @@
     公开招股书（招股说明书/招股意向书）
     《年度报告》 16 17 18
 """
-import requests
+import os
 import random
 import time
-import urllib
+import requests
 
-download_path = 'http://static.cninfo.com.cn/'
-saving_path = './pdf/'
+download_path = 'https://static.cninfo.com.cn/'
+# 使用脚本所在目录的相对路径
+_saving_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pdf')
+saving_path = _saving_path + '/'
 
 User_Agent = [
     "Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Win64; x64; Trident/5.0; .NET CLR 3.5.30729; .NET CLR 3.0.30729; .NET CLR 2.0.50727; Media Center PC 6.0)",
@@ -43,17 +45,20 @@ def szseAnnual(page, stock):
              'pageSize': 30,
              'tabName': 'fulltext',
              'column': 'szse',  # 深交所
-             'stock': stock,
-             'searchkey': '',
+             'stock': '',
+             'searchkey': stock,  # 使用searchkey查询股票代码或公司名
              'secid': '',
              'plate': 'sz',
-             'category': 'category_ndbg_szsh;',  # 年度报告
+             'category': 'category_ndbg_szsh',  # 年度报告
              'trade': '',
-             'seDate': '2016-01-01+~+2019-4-26'  # 时间区间
+             'seDate': '2020-01-01~2026-02-15'  # 时间区间
              }
 
     namelist = requests.post(query_path, headers=headers, data=query)
-    return namelist.json()['announcements']
+    result = namelist.json()
+    if result and 'announcements' in result and result['announcements']:
+        return result['announcements']
+    return []
 
 
 # 沪市 年度报告
@@ -64,17 +69,20 @@ def sseAnnual(page, stock):
              'pageSize': 30,
              'tabName': 'fulltext',
              'column': 'sse',
-             'stock': stock,
-             'searchkey': '',
+             'stock': '',
+             'searchkey': stock,  # 使用searchkey查询股票代码或公司名
              'secid': '',
              'plate': 'sh',
-             'category': 'category_ndbg_szsh;',  # 年度报告
+             'category': 'category_ndbg_szsh',  # 年度报告
              'trade': '',
-             'seDate': '2016-01-01+~+2019-4-26'  # 时间区间
+             'seDate': '2020-01-01~2026-02-15'  # 时间区间
              }
 
     namelist = requests.post(query_path, headers=headers, data=query)
-    return namelist.json()['announcements']  # json中的年度报告信息
+    result = namelist.json()
+    if result and 'announcements' in result and result['announcements']:
+        return result['announcements']
+    return []
 
 
 # 深市 招股
@@ -85,17 +93,20 @@ def szseStock(page, stock):
              'pageSize': 30,
              'tabName': 'fulltext',
              'column': 'szse',
-             'stock': stock,
-             'searchkey': '招股',
+             'stock': '',
+             'searchkey': stock + ' 招股',  # 组合搜索：股票代码 + 招股
              'secid': '',
              'plate': 'sz',
              'category': '',
              'trade': '',
-             'seDate': '2001-01-01+~+2019-4-26'  # 时间区间
+             'seDate': '2015-01-01~2026-02-15'  # 时间区间
              }
 
     namelist = requests.post(query_path, headers=headers, data=query)
-    return namelist.json()['announcements']  # json中的年度报告信息
+    result = namelist.json()
+    if result and 'announcements' in result and result['announcements']:
+        return result['announcements']
+    return []
 
 
 # 沪市 招股
@@ -106,17 +117,20 @@ def sseStock(page, stock):
              'pageSize': 30,
              'tabName': 'fulltext',
              'column': 'sse',
-             'stock': stock,
-             'searchkey': '招股',
+             'stock': '',
+             'searchkey': stock + ' 招股',  # 组合搜索：股票代码 + 招股
              'secid': '',
              'plate': 'sh',
              'category': '',
              'trade': '',
-             'seDate': '2001-01-01+~+2019-4-26'  # 时间区间
+             'seDate': '2015-01-01~2026-02-15'  # 时间区间
              }
 
     namelist = requests.post(query_path, headers=headers, data=query)
-    return namelist.json()['announcements']  # json中的年度报告信息
+    result = namelist.json()
+    if result and 'announcements' in result and result['announcements']:
+        return result['announcements']
+    return []
 
 
 # download PDF
@@ -134,6 +148,20 @@ def Download(single_page):
 
     for i in single_page:
         allowed_list = [
+            '2025年年度报告（更新后）',
+            '2025年年度报告',
+            '2024年年度报告（更新后）',
+            '2024年年度报告',
+            '2023年年度报告（更新后）',
+            '2023年年度报告',
+            '2022年年度报告（更新后）',
+            '2022年年度报告',
+            '2021年年度报告（更新后）',
+            '2021年年度报告',
+            '2020年年度报告（更新后）',
+            '2020年年度报告',
+            '2019年年度报告（更新后）',
+            '2019年年度报告',
             '2018年年度报告（更新后）',
             '2018年年度报告',
             '2017年年度报告（更新后）',
@@ -147,19 +175,37 @@ def Download(single_page):
             '招股意向书',
         ]
         title = i['announcementTitle']
-        allowed = title in allowed_list
-        if '确认意见' in title:
-            return
+
+        # 跳过确认意见等非正式报告
+        if '确认意见' in title or '取消' in title:
+            continue
+
+        # 检查标题是否包含允许的文本
+        allowed = False
+        for item in allowed_list:
+            if item in title:
+                allowed = True
+                break
+
+        # 检查招股书
         for item in allowed_list_2:
             if item in title:
                 allowed = True
                 break
+
         if allowed:
             download = download_path + i["adjunctUrl"]
             name = i["secCode"] + '_' + i['secName'] + '_' + i['announcementTitle'] + '.pdf'
             if '*' in name:
                 name = name.replace('*', '')
             file_path = saving_path + name
+
+            # 显示下载进度
+            print(f"  ↓ {name}")
+
+            # 确保目录存在
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
             time.sleep(random.random() * 2)
 
             headers['User-Agent'] = random.choice(User_Agent)
@@ -179,11 +225,11 @@ def Run(page_number, stock):
         stock_report = szseStock(page_number, stock)
         annual_report_ = sseAnnual(page_number, stock)
         stock_report_ = sseStock(page_number, stock)
-    except:
+    except Exception:
         print(page_number, 'page error, retrying')
         try:
             annual_report = szseAnnual(page_number, stock)
-        except:
+        except Exception:
             print(page_number, 'page error')
     Download(annual_report)
     Download(stock_report)
@@ -191,9 +237,10 @@ def Run(page_number, stock):
     Download(stock_report_)
 
 
-with open('company_id.txt') as file:
-    lines = file.readlines()
-    for line in lines:
-        stock = line
-        Run(1, line)
-        print(line, "done")
+if __name__ == '__main__':
+    with open('company_id.txt') as file:
+        lines = file.readlines()
+        for line in lines:
+            stock = line
+            Run(1, line)
+            print(line, "done")
